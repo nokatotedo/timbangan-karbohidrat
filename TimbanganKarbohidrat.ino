@@ -9,6 +9,8 @@
 const int LCD_e = 13;
 const int LCD_rs = 12;
 const int LCD_rw = 11;
+const int PUSH_b1 = A10;
+const int PUSH_b2 = A12;
 const int KEY_c4 = 30;
 const int KEY_c3 = 32;
 const int KEY_c2 = 34;
@@ -17,8 +19,6 @@ const int KEY_r4 = 38;
 const int KEY_r3 = 40;
 const int KEY_r2 = 42;
 const int KEY_r1 = 44;
-const int PUSH_b1 = A10;
-const int PUSH_b2 = A12;
 const int LCELL_dout = 3;
 const int LCELL_sck = 2;
 const int SEVEN_din = 51;
@@ -42,33 +42,46 @@ char keys[4][4] = {
 byte baris[4] = {KEY_r1, KEY_r2, KEY_r3, KEY_r4};
 byte kolom[4] = {KEY_c1, KEY_c2, KEY_c3, KEY_c4};
 Keypad keypad = Keypad(makeKeymap(keys), baris, kolom, 4, 4);
-HX711 hx711;
+HX711 loadcell;
 LedControl seven = LedControl(SEVEN_din, SEVEN_clk, SEVEN_load, 1);
 
 //data
-int a, b, d1, d2, d3, d4, d5, b1, b2;
-char jenis;
-float berat, karbohidrat;
+int menuSekarang, menuSebelumnya;
+int belakang1, belakang2, depan1, depan2, depan3, depan4, depan5;
+char *jenisMakanan;
+float pengali, karbohidratMakanan, beratMakanan, totalBerat, totalKarbohidrat;
+String jenis1, jenis2, jenis3;
+float berat1, berat2, berat3;
+float karbohidrat1, karbohidrat2, karbohidrat3;
 
 void setup() {
   Serial.begin(9600);
+  
+  //lcd
+  lcdPrint(0);
+  delay(4990);
 
-  Serial3.begin(9600);
-  mp3_set_serial(Serial3);
-  delay(10);
-
-  //printWarning
-
-  hx711.begin(LCELL_dout, LCELL_sck);
-  hx711.set_scale(440.0);
-  hx711.tare(100);
-
-  seven.shutdown(0, false);
-  seven.setIntensity(0, 2);
-
+  //push button
   pinMode(PUSH_b1, INPUT);
   pinMode(PUSH_b2, INPUT);
 
+  //mp3
+  Serial3.begin(9600);
+  mp3_set_serial(Serial3);
+  mp3_set_volume(5);
+  delay(10);
+
+  //HX711
+  loadcell.begin(LCELL_dout, LCELL_sck);
+  loadcell.set_scale(440.0);
+  loadcell.tare(100);
+
+  //max7219
+  seven.shutdown(0, false);
+  seven.setIntensity(0, 2);
+  sevenReset();
+
+  //led
   pinMode(LED_1, OUTPUT);
   pinMode(LED_2, OUTPUT);
   pinMode(LED_3, OUTPUT);
@@ -76,319 +89,219 @@ void setup() {
   pinMode(LED_5, OUTPUT);
   pinMode(LED_6, OUTPUT);
 
-  a = 0;
-  b = 0;
+  menuSekarang = 1;
 }
 
 void loop() {
-  lcdPrint(a);
-  sevenMAX7219();
+  int jumlah = 1;
+  totalBerat = 0;
+  berat1 = 0;
+  berat2 = 0;
+  berat3 = 0;
+  totalKarbohidrat = 0;
+  karbohidrat1 = 0;
+  karbohidrat2 = 0;
+  karbohidrat3 = 0;
 
-  //Pengenalan Alat
-  if(a == 0) {
+  lcdPrint(menuSekarang);
+  sevenPrint();
+
+  //pengenalan alat
+  if(menuSekarang == 1) {
     bool buttonTimbangan = digitalRead(A10);
     bool buttonSaran = digitalRead(A12);
     if(buttonTimbangan) {
-      a = 1;
+      menuSekarang = 15;
     }
   }
 
-  //Jenis Makanan 1
-  if(a == 1) {
-    char key = keypad.getKey();
-    switch(key) {
-      case 'A':
-      a = 0;
-      break;
+  //menimbang piring
+  if(menuSekarang == 15) {
+    loadcellOn(false);
+    totalBerat = beratMakanan;
 
-      case 'B':
-      a = 2;
-      break;
-
-      case '1':
-      a = 4;
-      lcdPrint(a);
-      play(1, 8000);
-      break;
-
-      case '2':
-      a = 5;
-      lcdPrint(a);
-      play(2, 7000);
-      break;
-
-      case '3':
-      a = 6;
-      lcdPrint(a);
-      play(3, 9000);
-      break;
-    }
-    b = a;
-  }
-
-  //Jenis Makanan 2
-  if(a == 2) {
-    char key = keypad.getKey();
-    switch(key) {
-      case 'A':
-      a = 1;
-      break;
-
-      case 'B':
-      a = 3;
-      break;
-
-      case '4':
-      a = 7;
-      lcdPrint(a);
-      play(4, 7000);
-      break;
-
-      case '5':
-      a = 8;
-      lcdPrint(a);
-      play(5, 5000);
-      break;
-
-      case '6':
-      a = 9;
-      lcdPrint(a);
-      play(6, 7000);
-      break;
-    }
-    b = a;
-  }
-
-  //Jenis Makanan 3
-  if(a == 3) {
-    char key = keypad.getKey();
-    switch(key) {
-      case 'A':
-      a = 2;
-      break;
-
-      case '7':
-      a = 10;
-      lcdPrint(a);
-      play(7, 5000);
-      break;
-
-      case '8':
-      a = 11;
-      lcdPrint(a);
-      play(8, 6000);
-      break;
-
-      case '9':
-      a = 12;
-      lcdPrint(a);
-      play(9, 5000);
-      break;
-    }
-    b = a;
-  }
-
-  //Serealia
-  if(a == 4) {
     char key = keypad.getKey();
     if(key == 'A') {
-      a = 1;
+      menuSekarang = 1;
     } else if(key == 'B') {
-      jenis = '1';
-      a = 13;
+      sevenReset();
+      menuSekarang = 2;
     }
   }
 
-  //Umbi
-  if(a == 5) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 1;
-    } else if(key == 'B') {
-      jenis = '2';
-      a = 13;
-    }
-  }
+  if(menuSekarang == 2) {
+    do {
+      lcdPrint(menuSekarang);
+      sevenPrint();
 
-  //Kacang
-  if(a == 6) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 1;
-    } else if(key == 'B') {
-      jenis = '3';
-      a = 13;
-    }
-  }
+      //jenis makanan 1-9
+      keypadJenisMakanan(2, true, '1', '2', '3', 5, 8000, 7000, 9000);
+      keypadJenisMakanan(3, true, '4', '5', '6', 8, 7000, 5000, 7000);
+      keypadJenisMakanan(4, false, '7', '8', '9', 11, 5000, 6000, 5000);
 
-  //Sayur
-  if(a == 7) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 2;
-    } else if(key == 'B') {
-      jenis = '4';
-      a = 13;
-    }
-  }
+      //contoh makanan
+      keypadContohMakanan(5, 2);
+      keypadContohMakanan(6, 2);
+      keypadContohMakanan(7, 2);
+      keypadContohMakanan(8, 3);
+      keypadContohMakanan(9, 3);
+      keypadContohMakanan(10, 3);
+      keypadContohMakanan(11, 4);
+      keypadContohMakanan(12, 4);
+      keypadContohMakanan(13, 4);
 
-  //Buah
-  if(a == 8) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 2;
-    } else if(key == 'B') {
-      jenis = '5';
-      a = 13;
-    }
-  }
+      //menimbang makanan
+      if(menuSekarang == 14) {
+        loadcellOn(true);
 
-  //Daging
-  if(a == 9) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 2;
-    } else if(key == 'B') {
-      jenis = '6';
-      a = 13;
-    }
-  }
+        int lampu = persenBerat(beratMakanan, menuSebelumnya - 1);
+        ledPersen(lampu);
 
-  //Ikan
-  if(a == 10) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 3;
-    } else if(key == 'B') {
-      jenis = '7';
-      a = 13;
-    }
-  }
+        char key = keypad.getKey();
+        if(key == 'A') {
+          menuSekarang = menuSebelumnya;
+        } else if(key == 'B') {
+          totalBerat = totalBerat + beratMakanan;
 
-  //Telur
-  if(a == 11) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 3;
-    } else if(key == 'B') {
-      jenis = '8';
-      a = 13;
-    }
-  }
+          sevenReset();
+          ledPersen(0);
+          menuSekarang = 2;
 
-  //Susu
-  if(a == 12) {
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 3;
-    } else if(key == 'B') {
-      jenis = '9';
-      a = 13;
-    }
-  }
-
-  //Proses
-  if(a == 13) {
-    sensorBerat(jenis);
-    char key = keypad.getKey();
-    if(key == 'A') {
-      kosongkanBerat();
-      a = b;
-    } else if(key == 'B') {
-      a = 14;
-    }
-  }
-
-  if(a == 14) {
-    kosongkanBerat();
-    LED(0);
-    char key = keypad.getKey();
-    if(key == 'A') {
-      a = 13;
-    }
+          if(jumlah == 1) {
+            jenis1 = jenisMakanan;
+            berat1 = beratMakanan;
+            karbohidrat1 = karbohidratMakanan;
+          } else if(jumlah == 2) {
+            jenis2 = jenisMakanan;
+            berat2 = beratMakanan;
+            karbohidrat2 = karbohidratMakanan;
+          } else if(jumlah == 3) {
+            jenis3 = jenisMakanan;
+            berat3 = beratMakanan;
+            karbohidrat3 = karbohidratMakanan;
+          }
+          jumlah++;
+        } else if(key == 'C') {
+          if(jumlah > 1) {
+            jumlah = 4;
+          }
+        }
+      }
+    } while (jumlah <= 3);
+    totalKarbohidrat = karbohidrat1 + karbohidrat2 + karbohidrat3;
+    Serial.print(jenis1);
+    Serial.print(" : ");
+    Serial.print(berat1);
+    Serial.print(" | ");
+    Serial.println(karbohidrat1);
+    Serial.print(jenis2);
+    Serial.print(" : ");
+    Serial.print(berat2);
+    Serial.print(" | ");
+    Serial.println(karbohidrat2);
+    Serial.print(jenis3);
+    Serial.print(" : ");
+    Serial.print(berat3);
+    Serial.print(" | ");
+    Serial.println(karbohidrat3);
+    Serial.print("Total : ");
+    Serial.println(totalBerat);
+    Serial.print("Tot K : ");
+    Serial.println(totalKarbohidrat);
+    menuSekarang = 1;
   }
 }
 
 void lcdPrint(int print) {
   lcd.firstPage();
   do {
-    menu(print);
+    lcdMenu(print);
   } while(lcd.nextPage());
 }
 
-void menu(int pilihanMenu) {
-  switch(pilihanMenu) {
+void lcdMenu(int menu) {
+  switch(menu) {
     case 0:
-    pengenalanAlat();
+    lcdPeringatan();
     break;
 
     case 1:
-    jenisMakanan("1. Serealia", "2. Umbi", "3. Kacang", true);
+    lcdPengenalanAlat();
     break;
 
     case 2:
-    jenisMakanan("4. Sayur", "5. Buah", "6. Daging", true);
+    lcdJenisMakanan("1. Serealia", "2. Umbi", "3. Kacang", true);
     break;
 
     case 3:
-    jenisMakanan("7. Ikan", "8. Telur", "9. Susu", false);
+    lcdJenisMakanan("4. Sayur", "5. Buah", "6. Daging", true);
     break;
 
     case 4:
-    contohMakanan(39, "SEREALIA", 52, "BERAS", 49, "TERIGU", 39, "ROTI MANIS");
+    lcdJenisMakanan("7. Ikan", "8. Telur", "9. Susu", false);
     break;
 
     case 5:
-    contohMakanan(51, "UMBI", 47, "KENTANG", 44, "SINGKONG", 29, "TEPUNG TAPIOKA");
+    lcdContohMakanan("SEREALIA", "BERAS", "TERIGU", "ROTI MANIS");
     break;
 
     case 6:
-    contohMakanan(41, "KACANG", 54, "TAHU", 52, "TEMPE", 34, "KACANG TANAH");
+    lcdContohMakanan("UMBI", "KENTANG", "SINGKONG", "TEPUNG TAPIOKA");
     break;
 
     case 7:
-    contohMakanan(46, "SAYUR", 37, "TOMAT MERAH", 37, "NANGKA MUDA", 32, "DAUN SINGKONG");
+    lcdContohMakanan("KACANG", "TAHU", "TEMPE", "KACANG TANAH");
     break;
 
     case 8:
-    contohMakanan(50, "BUAH", 37, "JERUK MANIS", 34, "PISANG KAPOK", 34, "PISANG AMBON");
+    lcdContohMakanan("SAYUR", "TOMAT MERAH", "NANGKA MUDA", "DAUN SINGKONG");
     break;
 
     case 9:
-    contohMakanan(43, "DAGING", 39, "BAKSO SAPI", 37, "DAGING SAPI", 37, "DAGING AYAM");
+    lcdContohMakanan("BUAH", "JERUK MANIS", "PISANG KAPOK", "PISANG AMBON");
     break;
 
     case 10:
-    contohMakanan(51, "IKAN", 54, "LELE", 47, "TONGKOL", 47, "BANDENG");
-    break;
-    
-    case 11:
-    contohMakanan(48, "TELUR", 39, "TELUR AYAM", 37, "TELUR BEBEK", 37, "TELUR PUYUH");
+    lcdContohMakanan("DAGING", "BAKSO SAPI", "DAGING SAPI", "DAGING AYAM");
     break;
 
+    case 11:
+    lcdContohMakanan("IKAN", "LELE", "TONGKOL", "BANDENG");
+    break;
+    
     case 12:
-    contohMakanan(51, "SUSU", 27, "UHT VANILA CAIR", 27, "UHT COKLAT CAIR", 22, "SUSU KENTAL MANIS");
+    lcdContohMakanan("TELUR", "TELUR AYAM", "TELUR BEBEK", "TELUR PUYUH");
     break;
 
     case 13:
-    proses();
+    lcdContohMakanan("SUSU", "UHT VANILA CAIR", "UHT COKLAT CAIR", "SUSU KENTAL MANIS");
     break;
 
     case 14:
-    karbohidratTotal();
+    lcdMenimbang(true);
+    break;
+
+    case 15:
+    lcdMenimbang(false);
     break;
   }
 }
 
-void pengenalanAlat() {
+void lcdPeringatan() {
   lcd.setFont(u8g_font_helvB08);
-  lcd.setPrintPos(31, 30);
-  lcd.print("TIMBANGAN");
-  lcd.setPrintPos(26, 42);
-  lcd.print("KARBOHIDRAT");
+  lcdTengahX("PERINGATAN!", 28, 0, 128);
+  lcd.setFont(u8g_font_5x7);
+  lcdTengahX("KOSONGKAN TIMBANGAN", 36, 0, 128);
+  lcdTengahX("SEBELUM DIGUNAKAN", 44, 0, 128);
 }
 
-void jenisMakanan(String satu, String dua, String tiga, bool lanjut) {
+void lcdPengenalanAlat() {
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX("TIMBANGAN", 30, 0, 128);
+  lcdTengahX("KARBOHIDRAT", 42, 0, 128);
+}
+
+void lcdJenisMakanan(String satu, String dua, String tiga, bool lanjut) {
   lcd.setFont(u8g_font_helvB08);
   lcd.setPrintPos(5, 18);
   lcd.print(satu);
@@ -397,230 +310,278 @@ void jenisMakanan(String satu, String dua, String tiga, bool lanjut) {
   lcd.setPrintPos(5, 42);
   lcd.print(tiga);
   lcd.setFont(u8g_font_5x7);
-  lcd.setPrintPos(5, 59);
-  lcd.print("A.KEMBALI");
-  if(lanjut) {
+  lcdBawah(true, lanjut);
+}
+
+void lcdContohMakanan(char *satu, char *dua, char *tiga, char *empat) {
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX(satu, 17, 0, 128);
+  lcd.setFont(u8g_font_5x7);
+  lcdTengahX(dua, 27, 0, 128);
+  lcdTengahX(tiga, 35, 0, 128);
+  lcdTengahX(empat, 43, 0, 128);
+  lcdBawah(true, true);
+}
+
+void lcdMenimbang(bool makanan) {
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX("LANJUTKAN JIKA", 18, 0, 128);
+  if(makanan) {
+    lcdTengahX("MAKANAN SELESAI", 30, 0, 128);
+  } else {
+    lcdTengahX("PIRING SELESAI", 30, 0, 128);
+  }
+  lcdTengahX("DITIMBANG", 42, 0, 128);
+  lcd.setFont(u8g_font_5x7);
+  lcdBawah(true, true);
+}
+
+void lcdTengahX(char *tulisan, int y, int min, int maks) {
+  int total = maks - min;
+  int totalX = (total - (lcd.getStrWidth(tulisan)))/2;
+  int x = totalX + min;
+  lcd.setPrintPos(x, y);
+  lcd.print(tulisan);
+}
+
+void lcdBawah(bool a, bool b) {
+  if(a) {
+    lcd.setPrintPos(5, 59);
+    lcd.print("A.KEMBALI");
+  }
+  if(b) {
     lcd.setPrintPos(84, 59);
     lcd.print("B.LANJUT");
   }
 }
 
-void contohMakanan(int p1, String satu, int p2, String dua, int p3, String tiga, int p4, String empat) {
-  lcd.setFont(u8g_font_helvB08);
-  lcd.setPrintPos(p1, 17);
-  lcd.print(satu);
-  lcd.setFont(u8g_font_5x7);
-  lcd.setPrintPos(p2, 27);
-  lcd.print(dua);
-  lcd.setPrintPos(p3, 35);
-  lcd.print(tiga);
-  lcd.setPrintPos(p4, 43);
-  lcd.print(empat);
-  lcd.setPrintPos(5, 59);
-  lcd.print("A.KEMBALI");
-  lcd.setPrintPos(84, 59);
-  lcd.print("B.LANJUT");
-}
-
-void proses() {
-  lcd.setFont(u8g_font_helvB08);
-  lcd.setPrintPos(19, 18);
-  lcd.print("LANJUTKAN JIKA");
-  lcd.setPrintPos(13, 30);
-  lcd.print("MAKANAN SELESAI");
-  lcd.setPrintPos(34, 42);
-  lcd.print("DITIMBANG");
-  lcd.setFont(u8g_font_5x7);
-  lcd.setPrintPos(5, 59);
-  lcd.print("A.KEMBALI");
-  lcd.setPrintPos(84, 59);
-  lcd.print("B.LANJUT");
-}
-
-void karbohidratTotal() {
-  lcd.drawFrame(0, 0, 128, 64);
-  lcd.drawFrame(1, 1, 126, 62);
-  lcd.drawBox(64, 0, 2, 64);
-  lcd.setFont(u8g_font_5x7);
-  char *nama = jenisMakan(jenis);
-  char karbohidratString[10];
-
-  Serial.print("Karbohidrat : ");
-  Serial.print(karbohidrat);
-  Serial.print("     Berat : ");
-  Serial.println(berat);
-  
-  dtostrf(karbohidrat, 4, 2, karbohidratString);
-  tengahX(nama, 13, 2, 64);
-  tengahX(karbohidratString, 13, 66, 128);
-}
-
-void play(int judul, int lama) {
-  mp3_play(judul);
-  delay(lama);
-}
-
-void sensorBerat(char jenis) {
-  berat = hx711.get_units(10);
-  berat = -(berat);
-  if(berat < 0.20) {
-    berat = 0.00;
-  }
-
-  float pengali = karbohidratMakanan(jenis);
-  karbohidrat = berat*pengali;
-
-  int lampu = persen(berat, jenis);
-  LED(lampu);
-
-  int depan = berat;
-  int belakang = (berat - depan) * 100;
-  if(belakang < 0) {
-    belakang = -(belakang);
-  }
-
-  d1 = (depan%10);
-  d2 = (depan/10)%10;
-  d3 = (depan/100)%10;
-  d4 = (depan/1000)%10;
-  d5 = (depan/10000)%10;
-  b1 = (belakang%10);
-  b2 = (belakang/10)%10;
-}
-
-void kosongkanBerat() {
-  d1 = 0;
-  d2 = 0;
-  d3 = 0;
-  d4 = 0;
-  d5 = 0;
-  b1 = 0;
-  b2 = 0;
-}
-
-void sevenMAX7219() {
-  seven.setDigit(0, 0, b1, false);
-  seven.setDigit(0, 1, b2, false);
+void sevenPrint() {
+  seven.setDigit(0, 0, belakang1, false);
+  seven.setDigit(0, 1, belakang2, false);
   seven.setChar(0, 2, '.', true);
-  seven.setDigit(0, 2, d1, true);
-  seven.setDigit(0, 3, d2, false);
-  seven.setDigit(0, 4, d3, false);
-  seven.setDigit(0, 5, d4, false);
-  seven.setDigit(0, 6, d5, false);
+  seven.setDigit(0, 2, depan1, true);
+  seven.setDigit(0, 3, depan2, false);
+  seven.setDigit(0, 4, depan3, false);
+  seven.setDigit(0, 5, depan4, false);
+  seven.setDigit(0, 6, depan5, false);
   seven.setDigit(0, 7, 0, false);
   seven.setDigit(0, 8, 0, false);
 }
 
-void LED(int jumlah) {
+void sevenReset() {
+  belakang1 = 0;
+  belakang2 = 0;
+  depan1 = 0;
+  depan2 = 0;
+  depan3 = 0;
+  depan4 = 0;
+  depan5 = 0;
+}
+
+void keypadJenisMakanan(int menu, bool b, char keypad1, char keypad2, char keypad3, int menuSelanjutnya, int lama1, int lama2, int lama3) {
+  if(menuSekarang == menu) {
+    char key = keypad.getKey();
+    if(key == 'A') {
+      menuSekarang--;
+    } else if((key == 'B') && b) {
+      menuSekarang++;
+    } else if(key == keypad1) {
+      menuSekarang = menuSelanjutnya;
+      lcdPrint(menuSekarang);
+      mp3Play(menuSekarang - 4, lama1);
+    } else if(key == keypad2) {
+      menuSekarang = menuSelanjutnya + 1;
+      lcdPrint(menuSekarang);
+      mp3Play(menuSekarang - 4, lama2);
+    } else if(key == keypad3) {
+      menuSekarang = menuSelanjutnya + 2;
+      lcdPrint(menuSekarang);
+      mp3Play(menuSekarang - 4, lama3);
+    }
+    menuSebelumnya = menuSekarang;
+  }
+}
+
+void keypadContohMakanan(int menu, int sebelumnya) {
+  if(menuSekarang == menu) {
+    char key = keypad.getKey();
+    if(key == 'A') {
+      menuSekarang = sebelumnya;
+    } else if(key == 'B') {
+      makanan(menuSekarang - 1);
+      menuSekarang = 14;
+    }
+  }
+}
+
+void mp3Play(int judul, int lama) {
+  mp3_play(judul);
+  delay(lama);
+}
+
+void loadcellOn(bool karbohidrat) {
+  beratMakanan = loadcell.get_units(10);
+  beratMakanan = -(beratMakanan);
+
+  if(karbohidrat) {
+    beratMakanan = beratMakanan - totalBerat;
+    karbohidratMakanan = pengali * beratMakanan;
+  }
+
+  if(beratMakanan < 0.20) {
+    beratMakanan = 0.00;
+  }
+  
+  int depan = beratMakanan;
+  int belakang = (beratMakanan - depan) * 100;
+  if(belakang < 0) {
+    belakang = -(belakang);
+  }
+
+  depan1 = (depan%10);
+  depan2 = (depan/10)%10;
+  depan3 = (depan/100)%10;
+  depan4 = (depan/1000)%10;
+  depan5 = (depan/10000)%10;
+  belakang1 = (belakang%10);
+  belakang2 = (belakang/10)%10;
+}
+
+void ledOn(bool satu, bool dua, bool tiga, bool empat, bool lima, bool enam) {
+  digitalWrite(LED_1, satu);
+  digitalWrite(LED_2, dua);
+  digitalWrite(LED_3, tiga);
+  digitalWrite(LED_4, empat);
+  digitalWrite(LED_5, lima);
+  digitalWrite(LED_6, enam);
+}
+
+void ledPersen(int jumlah) {
   switch(jumlah) {
     case 0:
-    digitalWrite(LED_1, LOW);
-    digitalWrite(LED_2, LOW);
-    digitalWrite(LED_3, LOW);
-    digitalWrite(LED_4, LOW);
-    digitalWrite(LED_5, LOW);
-    digitalWrite(LED_6, LOW);
+    ledOn(false, false, false, false, false, false);
     break;
 
     case 1:
-    digitalWrite(LED_1, HIGH);
-    digitalWrite(LED_2, LOW);
-    digitalWrite(LED_3, LOW);
-    digitalWrite(LED_4, LOW);
-    digitalWrite(LED_5, LOW);
-    digitalWrite(LED_6, LOW);
+    ledOn(true, false, false, false, false, false);
     break;
 
     case 2:
-    digitalWrite(LED_1, HIGH);
-    digitalWrite(LED_2, HIGH);
-    digitalWrite(LED_3, LOW);
-    digitalWrite(LED_4, LOW);
-    digitalWrite(LED_5, LOW);
-    digitalWrite(LED_6, LOW);
+    ledOn(true, true, false, false, false, false);
     break;
 
     case 3:
-    digitalWrite(LED_1, HIGH);
-    digitalWrite(LED_2, HIGH);
-    digitalWrite(LED_3, HIGH);
-    digitalWrite(LED_4, LOW);
-    digitalWrite(LED_5, LOW);
-    digitalWrite(LED_6, LOW);
+    ledOn(true, true, true, false, false, false);
     break;
 
     case 4:
-    digitalWrite(LED_1, HIGH);
-    digitalWrite(LED_2, HIGH);
-    digitalWrite(LED_3, HIGH);
-    digitalWrite(LED_4, HIGH);
-    digitalWrite(LED_5, LOW);
-    digitalWrite(LED_6, LOW);
+    ledOn(true, true, true, true, false, false);
     break;
 
     case 5:
-    digitalWrite(LED_1, HIGH);
-    digitalWrite(LED_2, HIGH);
-    digitalWrite(LED_3, HIGH);
-    digitalWrite(LED_4, HIGH);
-    digitalWrite(LED_5, HIGH);
-    digitalWrite(LED_6, LOW);
+    ledOn(true, true, true, true, true, false);
     break;
 
     case 6:
-    digitalWrite(LED_1, HIGH);
-    digitalWrite(LED_2, HIGH);
-    digitalWrite(LED_3, HIGH);
-    digitalWrite(LED_4, HIGH);
-    digitalWrite(LED_5, HIGH);
-    digitalWrite(LED_6, HIGH);
+    ledOn(true, true, true, true, true, true);
     break;
   }
 }
 
-int persen(float beratan, char jenis) {
+void makanan(int jenis) {
+  jenis = jenis - 3;
+  switch(jenis) {
+    case 1:
+    jenisMakanan = "Serealia";
+    pengali = 0.70;
+    break;
+
+    case 2:
+    jenisMakanan = "Umbi";
+    pengali = 0.26;
+    break;
+
+    case 3:
+    jenisMakanan = "Kacang";
+    pengali = 0.09;
+    break;
+
+    case 4:
+    jenisMakanan = "Sayur";
+    pengali = 0.06;
+    break;
+
+    case 5:
+    jenisMakanan = "Buah";
+    pengali = 0.21;
+    break;
+
+    case 6:
+    jenisMakanan = "Daging";
+    pengali = 0.02;
+    break;
+
+    case 7:
+    jenisMakanan = "Ikan";
+    pengali = 0;
+    break;
+
+    case 8:
+    jenisMakanan = "Telur";
+    pengali = 0; //0.0087
+    break;
+
+    case 9:
+    jenisMakanan = "Susu";
+    pengali = 0.13;
+    break;
+  }
+}
+
+int persenBerat(float beratan, int jenis) {
+  jenis = jenis - 3;
   int persentase;
   switch(jenis) {
-    case '1':
-    persentase = persenan(beratan, 5.95, 11.90, 17.85, 23.80, 29.75, 35.71);
+    case 1:
+    persentase = persen(beratan, 7.87, 15.75, 23.62, 31.50, 39.38, 47.25);
     break;
     
-    case '2':
-    persentase = persenan(beratan, 15.58, 31.17, 46.76, 62.35, 77.93, 93.52);
+    case 2:
+    persentase = persen(beratan, 20.78, 41.56, 62.34, 83.12, 103.90, 124.69);
     break;
 
-    case '3':
-    persentase = persenan(beratan, 45.28, 90.57, 135.86, 181.15, 226.44, 271.73);
+    case 3:
+    persentase = persen(beratan, 60.38, 120.76, 181.14, 241.52, 301.90, 362.28);
     break;
 
-    case '4':
-    persentase = persenan(beratan, 62.94, 125.88, 188.82, 251.76, 314.70, 377.64);
+    case 4:
+    persentase = persen(beratan, 83.91, 167.82, 251.73, 335.64, 419.56, 503.47);
     break;
 
-    case '5':
-    persentase = persenan(beratan, 19.23, 38.47, 57.71, 76.94, 96.18, 115.42);
+    case 5:
+    persentase = persen(beratan, 25.64, 51.29, 76.93, 102.58, 128.23, 153.87);
     break;
 
-    case '6':
-    persentase = persenan(beratan, 165.34, 330.68, 496.03, 661.37, 826.71, 992.06);
+    case 6:
+    persentase = persen(beratan, 220.43, 440.87, 661.30, 881.74, 1102.18, 1322.61);
     break;
 
-    case '7':
+    case 7:
     persentase = 0;
     break;
 
-    case '8':
-    persentase = persenan(beratan, 478.92, 957.85, 1436.78, 1915.70, 2394.63, 2873.56);
+    case 8:
+    persentase = 0;
     break;
 
-    case '9':
-    persentase = persenan(beratan, 29.84, 59.69, 89.54, 119.38, 149.23, 179.08);
+    case 9:
+    persentase = persen(beratan, 39.79, 79.58, 119.37, 159.16, 198.96, 238.75);
     break;
   }
   return persentase;
 }
 
-int persenan(float beratan, float satu, float dua, float tiga, float empat, float lima, float enam) {
+int persen(float beratan, float satu, float dua, float tiga, float empat, float lima, float enam) {
   if(beratan >= enam) {
     return 6;
   } else if(beratan >= lima) {
@@ -636,96 +597,4 @@ int persenan(float beratan, float satu, float dua, float tiga, float empat, floa
   } else {
     return 0;
   }
-}
-
-char *jenisMakan(char jenis) {
-  char *makan;
-  switch(jenis) {
-    case '1':
-    makan = "Serealia";
-    break;
-    
-    case '2':
-    makan = "Umbi";
-    break;
-
-    case '3':
-    makan = "Kacang";
-    break;
-
-    case '4':
-    makan = "Sayur";
-    break;
-
-    case '5':
-    makan = "Buah";
-    break;
-
-    case '6':
-    makan = "Daging";
-    break;
-
-    case '7':
-    makan = "Ikan";
-    break;
-
-    case '8':
-    makan = "Telur";
-    break;
-
-    case '9':
-    makan = "Susu";
-    break;
-  }
-  return makan;
-}
-
-float karbohidratMakanan(char jenis) {
-  float makan;
-  switch(jenis) {
-    case '1':
-    makan = 0.70;
-    break;
-    
-    case '2':
-    makan = 0.26;
-    break;
-
-    case '3':
-    makan = 0.09;
-    break;
-
-    case '4':
-    makan = 0.06;
-    break;
-
-    case '5':
-    makan = 0.21;
-    break;
-
-    case '6':
-    makan = 0.02;
-    break;
-
-    case '7':
-    makan = 0;
-    break;
-
-    case '8':
-    makan = 0;
-    break;
-
-    case '9':
-    makan = 0.13;
-    break;
-  }
-  return makan;
-}
-
-void tengahX(char *tulisan, int y, int min, int maks) {
-  int total = maks - min;
-  int tX = (total - (lcd.getStrWidth(tulisan)))/2;
-  int x = tX + min;
-  lcd.setPrintPos(x, y);
-  lcd.print(tulisan);
 }
