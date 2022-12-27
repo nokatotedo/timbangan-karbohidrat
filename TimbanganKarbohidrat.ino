@@ -47,10 +47,9 @@ LedControl seven = LedControl(SEVEN_din, SEVEN_clk, SEVEN_load, 1);
 
 //data
 int menuSekarang, menuSebelumnya;
-int belakang1, belakang2, depan1, depan2, depan3, depan4, depan5;
-char *jenisMakanan;
+int belakang1, belakang2, depan1, depan2, depan3, depan4, depan5, jumlah;
+char *jenisMakanan, *makanan1, *makanan2, *makanan3;
 float pengali, karbohidratMakanan, beratMakanan, totalBerat, totalKarbohidrat;
-String jenis1, jenis2, jenis3;
 float berat1, berat2, berat3;
 float karbohidrat1, karbohidrat2, karbohidrat3;
 
@@ -68,7 +67,7 @@ void setup() {
   //mp3
   Serial3.begin(9600);
   mp3_set_serial(Serial3);
-  mp3_set_volume(5);
+  mp3_set_volume(15);
   delay(10);
 
   //HX711
@@ -93,15 +92,7 @@ void setup() {
 }
 
 void loop() {
-  int jumlah = 1;
-  totalBerat = 0;
-  berat1 = 0;
-  berat2 = 0;
-  berat3 = 0;
-  totalKarbohidrat = 0;
-  karbohidrat1 = 0;
-  karbohidrat2 = 0;
-  karbohidrat3 = 0;
+  jumlah = 1;
 
   lcdPrint(menuSekarang);
   sevenPrint();
@@ -117,16 +108,25 @@ void loop() {
 
   //menimbang piring
   if(menuSekarang == 15) {
-    loadcellOn(false);
-    totalBerat = beratMakanan;
-
-    char key = keypad.getKey();
-    if(key == 'A') {
-      menuSekarang = 1;
-    } else if(key == 'B') {
-      sevenReset();
-      menuSekarang = 2;
+    totalBerat = 0;
+    berat1 = 0;
+    berat2 = 0;
+    berat3 = 0;
+    totalKarbohidrat = 0;
+    karbohidrat1 = 0;
+    karbohidrat2 = 0;
+    karbohidrat3 = 0;
+    makanan1 = "";
+    makanan2 = "";
+    makanan3 = "";
+    lcdPrint(menuSekarang);
+    for(int timbang = 0; timbang < 10; timbang++) {
+      sevenPrint();
+      loadcellOn(false);
+      totalBerat = beratMakanan;
     }
+    sevenReset();
+    menuSekarang = 2;
   }
 
   if(menuSekarang == 2) {
@@ -159,55 +159,81 @@ void loop() {
 
         char key = keypad.getKey();
         if(key == 'A') {
+          ledPersen(0);
+          sevenReset();
           menuSekarang = menuSebelumnya;
         } else if(key == 'B') {
-          totalBerat = totalBerat + beratMakanan;
-
-          sevenReset();
-          ledPersen(0);
-          menuSekarang = 2;
-
+          menuSekarang = 16;
           if(jumlah == 1) {
-            jenis1 = jenisMakanan;
+            makanan1 = jenisMakanan;
             berat1 = beratMakanan;
             karbohidrat1 = karbohidratMakanan;
           } else if(jumlah == 2) {
-            jenis2 = jenisMakanan;
+            makanan2 = jenisMakanan;
             berat2 = beratMakanan;
             karbohidrat2 = karbohidratMakanan;
           } else if(jumlah == 3) {
-            jenis3 = jenisMakanan;
+            makanan3 = jenisMakanan;
             berat3 = beratMakanan;
             karbohidrat3 = karbohidratMakanan;
           }
-          jumlah++;
-        } else if(key == 'C') {
-          if(jumlah > 1) {
-            jumlah = 4;
-          }
         }
       }
+
+      if(menuSekarang == 16) {
+        ledPersen(0);
+        sevenReset();
+        char key = keypad.getKey();
+        if(key == 'A') {
+          menuSekarang = 14;
+        } else if(key == 'B') {
+          menuSekarang = 17;
+        }
+      }
+
+      if(menuSekarang == 17) {
+        totalKarbohidrat = karbohidrat1 + karbohidrat2 + karbohidrat3;
+        int lampu = persen(totalKarbohidrat, 16.66, 33.33, 50, 66.66, 83.33, 100);
+        ledPersen(lampu);
+        //mp3Play
+        char key = keypad.getKey();
+        if(key == 'A') {
+          menuSekarang = 16;
+        } else if(key == 'B') {
+          if(jumlah < 3) {
+            jumlah++;
+            totalBerat = totalBerat + beratMakanan;
+            ledPersen(0);
+            menuSekarang = 2;
+          }
+        } else if(key == 'C') {
+          ledPersen(0);
+          menuSekarang = 1;
+        }
+      }
+
+      if(menuSekarang == 1) {
+        jumlah = 4;
+      }
     } while (jumlah <= 3);
-    totalKarbohidrat = karbohidrat1 + karbohidrat2 + karbohidrat3;
-    Serial.print(jenis1);
-    Serial.print(" : ");
+    Serial.print("Jenis 1 : ");
+    Serial.print(makanan1);
+    Serial.print("  Berat : ");
     Serial.print(berat1);
-    Serial.print(" | ");
+    Serial.print("  Karbohidrat : ");
     Serial.println(karbohidrat1);
-    Serial.print(jenis2);
-    Serial.print(" : ");
+    Serial.print("Jenis 2 : ");
+    Serial.print(makanan2);
+    Serial.print("  Berat : ");
     Serial.print(berat2);
-    Serial.print(" | ");
+    Serial.print("  Karbohidrat : ");
     Serial.println(karbohidrat2);
-    Serial.print(jenis3);
-    Serial.print(" : ");
+    Serial.print("Jenis 3 : ");
+    Serial.print(makanan3);
+    Serial.print("  Berat : ");
     Serial.print(berat3);
-    Serial.print(" | ");
+    Serial.print("  Karbohidrat : ");
     Serial.println(karbohidrat3);
-    Serial.print("Total : ");
-    Serial.println(totalBerat);
-    Serial.print("Tot K : ");
-    Serial.println(totalKarbohidrat);
     menuSekarang = 1;
   }
 }
@@ -278,27 +304,39 @@ void lcdMenu(int menu) {
     break;
 
     case 14:
-    lcdMenimbang(true);
+    lcdMenimbang();
     break;
 
     case 15:
-    lcdMenimbang(false);
+    lcdMenimbangPiring();
+    break;
+
+    case 16:
+    lcdTabelKarbohidrat();
+    break;
+
+    case 17:
+    lcdHasil(jumlah);
+    break;
+
+    case 18:
+    lcdError();
     break;
   }
 }
 
 void lcdPeringatan() {
   lcd.setFont(u8g_font_helvB08);
-  lcdTengahX("PERINGATAN!", 28, 0, 128);
+  lcdTengahX("PERINGATAN!", 28, 1, 128);
   lcd.setFont(u8g_font_5x7);
-  lcdTengahX("KOSONGKAN TIMBANGAN", 36, 0, 128);
-  lcdTengahX("SEBELUM DIGUNAKAN", 44, 0, 128);
+  lcdTengahX("KOSONGKAN TIMBANGAN", 36, 1, 128);
+  lcdTengahX("SEBELUM DIGUNAKAN", 44, 1, 128);
 }
 
 void lcdPengenalanAlat() {
   lcd.setFont(u8g_font_helvB08);
-  lcdTengahX("TIMBANGAN", 30, 0, 128);
-  lcdTengahX("KARBOHIDRAT", 42, 0, 128);
+  lcdTengahX("TIMBANGAN", 30, 1, 128);
+  lcdTengahX("KARBOHIDRAT", 42, 1, 128);
 }
 
 void lcdJenisMakanan(String satu, String dua, String tiga, bool lanjut) {
@@ -310,30 +348,88 @@ void lcdJenisMakanan(String satu, String dua, String tiga, bool lanjut) {
   lcd.setPrintPos(5, 42);
   lcd.print(tiga);
   lcd.setFont(u8g_font_5x7);
-  lcdBawah(true, lanjut);
+  if((menuSekarang == 2) && (jumlah > 1)) {
+    lcdBawah(false, lanjut);
+  } else {
+    lcdBawah(true, lanjut);
+  }
 }
 
 void lcdContohMakanan(char *satu, char *dua, char *tiga, char *empat) {
   lcd.setFont(u8g_font_helvB08);
-  lcdTengahX(satu, 17, 0, 128);
+  lcdTengahX(satu, 17, 1, 128);
   lcd.setFont(u8g_font_5x7);
-  lcdTengahX(dua, 27, 0, 128);
-  lcdTengahX(tiga, 35, 0, 128);
-  lcdTengahX(empat, 43, 0, 128);
+  lcdTengahX(dua, 27, 1, 128);
+  lcdTengahX(tiga, 35, 1, 128);
+  lcdTengahX(empat, 43, 1, 128);
   lcdBawah(true, true);
 }
 
-void lcdMenimbang(bool makanan) {
+void lcdMenimbang() {
   lcd.setFont(u8g_font_helvB08);
-  lcdTengahX("LANJUTKAN JIKA", 18, 0, 128);
-  if(makanan) {
-    lcdTengahX("MAKANAN SELESAI", 30, 0, 128);
-  } else {
-    lcdTengahX("PIRING SELESAI", 30, 0, 128);
-  }
-  lcdTengahX("DITIMBANG", 42, 0, 128);
+  lcdTengahX("LANJUTKAN JIKA", 18, 1, 128);
+  lcdTengahX("MAKANAN SELESAI", 30, 1, 128);
+  lcdTengahX("DITIMBANG", 42, 1, 128);
   lcd.setFont(u8g_font_5x7);
   lcdBawah(true, true);
+}
+
+void lcdMenimbangPiring() {
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX("LETAKKAN PIRING", 30, 1, 128);
+  lcdTengahX("UNTUK DITIMBANG", 42, 1, 128);
+}
+
+void lcdTabelKarbohidrat() {
+  lcd.drawFrame(0, 0, 128, 48);
+  lcd.drawFrame(1, 1, 126, 46);
+  lcd.drawBox(64, 0, 2, 48);
+  lcd.setFont(u8g_font_5x7);
+  char *nama1 = makanan1;
+  char *nama2 = makanan2;
+  char *nama3 = makanan3;
+  char k1[10], k2[10], k3[10];
+  dtostrf(karbohidrat1, 4, 2, k1);
+  dtostrf(karbohidrat2, 4, 2, k2);
+  dtostrf(karbohidrat3, 4, 2, k3);
+  lcdTengahX(nama1, 16, 3, 64);
+  lcdTengahX(nama2, 27, 3, 64);
+  lcdTengahX(nama3, 38, 3, 64);
+  if(karbohidrat1 != 0.00) {
+    lcdTengahX(k1, 16, 67, 128);
+  }
+  if(karbohidrat2 != 0.00) {
+    lcdTengahX(k2, 27, 67, 128);
+  }
+  if(karbohidrat3 != 0.00) {
+    lcdTengahX(k3, 38, 67, 128);
+  }
+  lcdBawah(true, true);
+}
+
+void lcdHasil(int jumlah) {
+  char karbohidrat[10];
+  dtostrf(totalKarbohidrat, 4, 2, karbohidrat);
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX("TOTAL KARBOHIDRAT", 18, 1, 128);
+  lcdTengahX(karbohidrat, 31, 1, 128);
+  lcd.setFont(u8g_font_5x7);
+  if(jumlah == 3) {
+    lcdBawah(true, false);
+    lcd.setPrintPos(79, 59);
+  } else {
+    lcdBawah(true, true);
+    lcd.setPrintPos(79, 48);
+  }
+  lcd.print("C.SELESAI");
+}
+
+void lcdError() {
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX("ERROR!", 28, 1, 128);
+  lcd.setFont(u8g_font_5x7);
+  lcdTengahX("MAKANAN/PIRING", 36, 1, 128);
+  lcdTengahX("SEBELUMNYA TERANGKAT", 44, 1, 128);
 }
 
 void lcdTengahX(char *tulisan, int y, int min, int maks) {
@@ -382,7 +478,9 @@ void keypadJenisMakanan(int menu, bool b, char keypad1, char keypad2, char keypa
   if(menuSekarang == menu) {
     char key = keypad.getKey();
     if(key == 'A') {
-      menuSekarang--;
+      if(!((menuSekarang == 2) && (jumlah > 1))) {
+        menuSekarang--;
+      }
     } else if((key == 'B') && b) {
       menuSekarang++;
     } else if(key == keypad1) {
@@ -419,18 +517,24 @@ void mp3Play(int judul, int lama) {
   delay(lama);
 }
 
-void loadcellOn(bool karbohidrat) {
+void loadcellOn(bool makanan) {
   beratMakanan = loadcell.get_units(10);
   beratMakanan = -(beratMakanan);
 
-  if(karbohidrat) {
+  if(makanan) {
     beratMakanan = beratMakanan - totalBerat;
-    karbohidratMakanan = pengali * beratMakanan;
+    if(beratMakanan < -1.20) {
+      beratMakanan = 0.00;
+      lcdPrint(18);
+      delay(1200);
+    }
   }
 
   if(beratMakanan < 0.20) {
     beratMakanan = 0.00;
   }
+
+  karbohidratMakanan = pengali * beratMakanan;
   
   int depan = beratMakanan;
   int belakang = (beratMakanan - depan) * 100;
@@ -456,8 +560,8 @@ void ledOn(bool satu, bool dua, bool tiga, bool empat, bool lima, bool enam) {
   digitalWrite(LED_6, enam);
 }
 
-void ledPersen(int jumlah) {
-  switch(jumlah) {
+void ledPersen(int led) {
+  switch(led) {
     case 0:
     ledOn(false, false, false, false, false, false);
     break;
