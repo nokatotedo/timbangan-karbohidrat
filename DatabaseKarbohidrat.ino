@@ -16,7 +16,7 @@ void setup() {
 
   Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
+    Serial.print(". ");
     delay(500);
   }
   Serial.println();
@@ -27,7 +27,7 @@ void setup() {
 
 void loop() {
   char jenis;
-  float jenisHari;
+  String jenisHari;
   while(Serial.available()) {
     Serial.read();
   }
@@ -39,27 +39,10 @@ void loop() {
       Serial.read();
     }
     while(Serial.available() == 0) {}
-    jenisHari = Serial.parseFloat();
-
-    String hariSekarang;
-    if(jenisHari == 1.0) {
-      hariSekarang = "Minggu";
-    } else if(jenisHari == 2.0) {
-      hariSekarang = "Senin";
-    } else if(jenisHari == 3.0) {
-      hariSekarang = "Selasa";
-    } else if(jenisHari == 4.0) {
-      hariSekarang = "Rabu";
-    } else if(jenisHari == 5.0) {
-      hariSekarang = "Kamis";
-    } else if(jenisHari == 6.0) {
-      hariSekarang = "Jum'at";
-    } else if(jenisHari == 7.0) {
-      hariSekarang = "Sabtu";
-    }
+    jenisHari = Serial.readStringUntil(' ');
 
     getHari();
-    if(hariSekarang != hari) {
+    if(jenisHari != hari) {
       Firebase.setFloat("makanan/m1/berat", 0); Firebase.setFloat("makanan/m1/karbohidrat", 0);
       Firebase.setFloat("makanan/m2/berat", 0); Firebase.setFloat("makanan/m2/karbohidrat", 0);
       Firebase.setFloat("makanan/m3/berat", 0); Firebase.setFloat("makanan/m3/karbohidrat", 0);
@@ -69,7 +52,7 @@ void loop() {
       Firebase.setFloat("makanan/m7/berat", 0); Firebase.setFloat("makanan/m7/karbohidrat", 0);
       Firebase.setFloat("makanan/m8/berat", 0); Firebase.setFloat("makanan/m8/karbohidrat", 0);
       Firebase.setFloat("makanan/m9/berat", 0); Firebase.setFloat("makanan/m9/karbohidrat", 0);
-      Firebase.setString("waktu/hari", hariSekarang);
+      Firebase.setString("waktu/hari", jenisHari);
     }
   } else if(jenis == 'b') {
     for(int jumlah = 1; jumlah <= 3; jumlah++) {
@@ -174,24 +157,25 @@ void updateSaran() {
   float karbohidrat;
   karbohidrat = kSerealia + kUmbi + kKacang + kSayur + kBuah + kDaging + kIkan + kTelur + kSusu;
   if(karbohidrat > 266.66) {
-    Serial.print("Ikan");
+    Serial.println("Ikan ");
   } else if(karbohidrat > 233.33) {
-    Serial.print("Telur");
+    Serial.println("Telur ");
   } else if(karbohidrat > 200) {
-    Serial.print("Daging");
+    Serial.println("Daging ");
   } else if(karbohidrat > 166.66) {
-    Serial.print("Sayur");
+    Serial.println("Sayur ");
   } else if(karbohidrat > 133.33) {
-    Serial.print("Kacang");
+    Serial.println("Kacang ");
   } else if(karbohidrat > 100) {
-    Serial.print("Susu");
+    Serial.println("Susu ");
   } else if(karbohidrat > 66.66) {
-    Serial.print("Buah");
+    Serial.println("Buah ");
   } else if(karbohidrat > 33.33) {
-    Serial.print("Umbi");
+    Serial.println("Umbi ");
   } else {
-    Serial.print("Serealia");
+    Serial.println("Serealia ");
   }
+  Serial.println(karbohidrat);
 }
 
 void getKarbohidrat(int jenis) {
