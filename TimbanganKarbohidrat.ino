@@ -72,12 +72,12 @@ void setup() {
   //mp3
   Serial3.begin(9600);
   mp3_set_serial(Serial3);
-  mp3_set_volume(15);
+  mp3_set_volume(20);
   delay(10);
 
   //HX711
   loadcell.begin(LCELL_dout, LCELL_sck);
-  loadcell.set_scale(220);
+  loadcell.set_scale(230);
   loadcell.tare(100);
 
   //max7219
@@ -238,6 +238,13 @@ void loop() {
           ledPersen(0);
           sevenReset();
           menuSekarang = menuSebelumnya;
+          if(jumlah == 1) {
+            makanan1 = ""; berat1 = 0.00; karbohidrat1 = 0.00;
+          } else if(jumlah == 2) {
+            makanan2 = ""; berat2 = 0.00; karbohidrat2 = 0.00;
+          } else if(jumlah == 3) {
+            makanan3 = ""; berat3 = 0.00; karbohidrat3 = 0.00;
+          }
         } else if (key == 'B') {
           menuSekarang = 16;
           if (jumlah == 1) {
@@ -274,11 +281,6 @@ void loop() {
       }
 
       if (menuSekarang == 18) {
-        if(suksesHasil) {
-          beratMakanan = 0.00;
-          jumlah--;
-          suksesHasil = false;
-        }
         totalKarbohidrat = karbohidrat1 + karbohidrat2 + karbohidrat3;
         lcdPrint(menuSekarang);
         int lampu = persen(totalKarbohidrat, 16.66, 33.33, 50, 66.66, 83.33, 100);
@@ -289,8 +291,16 @@ void loop() {
         }
         char key = keypad.getKey();
         if (key == 'A') {
+          if(suksesHasil) {
+            menuSekarang = 16;
+          }
           menuSekarang = 16;
         } else if (key == 'B') {
+          if(suksesHasil) {
+            beratMakanan = 0.00;
+            jumlah--;
+            suksesHasil = false;
+          }
           if (jumlah < 3) {
             jumlah++;
             totalBerat = totalBerat + beratMakanan;
@@ -316,11 +326,11 @@ void loop() {
           }
           jumlah--;
         } else if(key == '2') {
-          totalBerat = totalBerat - berat2;
           if(jumlah == 3) {
+            totalBerat = totalBerat - berat2;
             karbohidrat2 = 0.00; berat2 = 0.00; makanan2 = "";
+            jumlah--;
           }
-          jumlah--;
         } else if(key == 'A') {
           menuSekarang = 2;
         }
@@ -429,6 +439,10 @@ void lcdMenu(int menu) {
 
     case 20:
       lcdSaran();
+      break;
+
+    case 21:
+      lcdAlarm();
       break;
   }
 }
@@ -569,6 +583,12 @@ void lcdSaran() {
   lcd.setFont(u8g_font_helvB08);
   lcdTengahX("SARAN MAKANAN", 30, 1, 128);
   lcdTengahX(jenisMakanan, 42, 1, 128);
+}
+
+void lcdAlarm() {
+  lcd.setFont(u8g_font_helvB08);
+  lcdTengahX("WAKTUNYA", 30, 1, 128);
+  lcdTengahX("MAKAN", 42, 1, 128);
 }
 
 void lcdTengahX(char *tulisan, int y, int min, int maks) {
@@ -787,17 +807,17 @@ void kirimESP(char *makanan, float karbohidrat, float berat) {
 void rtcOn() {
   char *waktu = rtc.getTimeStr();
   if(strcmp(waktu, "07:00:00") == 0) {
-    mp3Play(31, 3000); mp3Play(31, 3000); mp3Play(31, 3000);
+    lcdPrint(21); mp3Play(31, 3000); mp3Play(31, 3000); mp3Play(31, 3000);
   } else if(strcmp(waktu, "08:00:00") == 0) {
-    mp3Play(31, 3000); mp3Play(31, 3000); mp3Play(31, 3000);
+    lcdPrint(21); mp3Play(31, 3000); mp3Play(31, 3000); mp3Play(31, 3000);
   } else if(strcmp(waktu, "14:00:00") == 0) {
-    mp3Play(32, 2500); mp3Play(32, 2500); mp3Play(32, 2500);
+    lcdPrint(21); mp3Play(32, 2500); mp3Play(32, 2500); mp3Play(32, 2500);
   } else if(strcmp(waktu, "15:00:00") == 0) {
-    mp3Play(32, 2500); mp3Play(32, 2500); mp3Play(32, 2500);
+    lcdPrint(21); mp3Play(32, 2500); mp3Play(32, 2500); mp3Play(32, 2500);
   } else if(strcmp(waktu, "19:00:00") == 0) {
-    mp3Play(33, 2500); mp3Play(33, 2500); mp3Play(33, 2500);
+    lcdPrint(21); mp3Play(33, 2500); mp3Play(33, 2500); mp3Play(33, 2500);
   } else if(strcmp(waktu, "20:00:00") == 0) {
-    mp3Play(33, 2500); mp3Play(33, 2500); mp3Play(33, 2500);
+    lcdPrint(21); mp3Play(33, 2500); mp3Play(33, 2500); mp3Play(33, 2500);
   }
 }
 
